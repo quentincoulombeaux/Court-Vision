@@ -1,0 +1,10 @@
+# CourtVision runtime (Python 3.11). ffmpeg must also be on the PATH (import conversion, audio in exports).
+ultralytics>=8.4      # YOLO11 (ball) and YOLO11-pose (court)
+opencv-python
+numpy
+fastapi
+uvicorn[standard]
+python-multipart      # video upload in the web UI
+
+# Optional
+# huggingface_hub     # only to rebuild the training datasets / fetch the evaluation labels

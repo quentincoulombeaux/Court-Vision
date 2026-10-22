@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CourtVision</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=5">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="16" r="13" fill="var(--ball)"/>
+        <path d="M6.5 7.5c4.2 3.6 4.2 13.4 0 17M25.5 7.5c-4.2 3.6-4.2 13.4 0 17" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".9"/>
+      </svg>
+      <span class="brand-name">CourtVision</span>
+      <span class="brand-sub" data-i18n="subtitle"></span>
+    </div>
+    <div class="topbar-right">
+      <div id="jobPill" class="job-pill hidden"><span class="spinner"></span><span id="jobPillText"></span></div>
+      <div class="lang-switch" id="langSwitch" role="group" aria-label="Language">
+        <button data-lang="en">EN</button>
+        <button data-lang="fr">FR</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- Colonne de gauche : bibliotheque, regles, export -->
+    <aside class="side">
+      <div class="card library">
+        <div class="section-head">
+          <h2 data-i18n="videos"></h2>
+          <label class="btn small primary">
+            <svg viewBox="0 0 24 24"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg><span data-i18n="import"></span>
+            <input id="fileInput" type="file" accept="video/*" hidden>
+          </label>
+        </div>
+        <ul id="videoList" class="video-list"></ul>
+        <div class="drop-hint" data-i18n="dropHint"></div>
+      </div>
+
+      <div class="card">
+        <h2 data-i18n="rules"></h2>
+        <div class="segmented" id="modeSeg">
+          <button data-mode="simple" data-i18n="singles"></button>
+          <button data-mode="double" data-i18n="doubles"></button>
+        </div>
+        <div class="slider-row">
+          <label for="closeRange" data-i18n="closeZone"></label>
+          <span class="mono" id="closeVal">± 5 cm</span>
+        </div>
+        <input id="closeRange" type="range" min="0" max="20" step="1" value="5">
+      </div>
+
+      <div class="card">
+        <h2 data-i18n="export"></h2>
+        <p class="muted small" data-i18n="exportHint"></p>
+        <button id="exportBtn" class="btn wide" data-i18n="exportBtn"></button>
+        <div id="exportProg" class="progress hidden"><div class="bar"></div></div>
+        <div id="exportLinks" class="export-links"></div>
+      </div>
+    </aside>
+
+    <!-- Lecteur -->
+    <section class="stage">
+      <div id="player" class="player">
+        <video id="video" playsinline preload="auto"></video>
+        <canvas id="overlay"></canvas>
+        <div id="emptyState" class="state-card"><p data-i18n="pickVideo"></p></div>
+        <div id="analyzeCard" class="state-card hidden">
+          <h3 id="analyzeTitle"></h3>
+          <p id="analyzeText" class="muted"></p>
+          <ol id="stepList" class="steps"></ol>
+          <div class="progress"><div id="analyzeBar" class="bar"></div></div>
+          <p id="analyzeMsg" class="muted small"></p>
+          <button id="analyzeBtn" class="btn primary" data-i18n="runAnalysis"></button>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="ctrl-group">
+          <button id="playBtn" class="icon-btn" data-i18n-title="tPlay">
+            <svg id="playIcon" viewBox="0 0 24 24"><path d="M7 4.5v15l13-7.5z" class="fill"/></svg>
+          </button>
+          <button id="prevFrame" class="icon-btn" data-i18n-title="tPrevFrame"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+          <button id="nextFrame" class="icon-btn" data-i18n-title="tNextFrame"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+          <span class="sep"></span>
+          <button id="prevBounce" class="icon-btn" data-i18n-title="tPrevBounce"><svg viewBox="0 0 24 24"><path d="M18 6l-6 6 6 6M11 6l-6 6 6 6"/></svg></button>
+          <button id="nextBounce" class="icon-btn" data-i18n-title="tNextBounce"><svg viewBox="0 0 24 24"><path d="M6 6l6 6-6 6M13 6l6 6-6 6"/></svg></button>
+          <span class="sep"></span>
+          <button id="muteBtn" class="icon-btn" data-i18n-title="tMute"><svg id="muteIcon" viewBox="0 0 24 24"></svg></button>
+          <input id="volume" class="volume" type="range" min="0" max="1" step="0.05" value="0.8">
+        </div>
+        <div class="time mono"><span id="timeCur">0:00.00</span><span class="muted"> / </span><span id="timeTot">0:00.00</span><span class="frame-no muted" id="frameNo"></span></div>
+        <div class="ctrl-group speeds" id="speeds">
+          <button data-rate="1" class="chip active">1×</button>
+          <button data-rate="0.5" class="chip" data-i18n="rate05"></button>
+          <button data-rate="0.25" class="chip" data-i18n="rate025"></button>
+        </div>
+      </div>
+
+      <div id="timeline" class="timeline">
+        <div class="track"><div id="played" class="played"></div></div>
+        <div id="markers" class="markers"></div>
+        <div id="playhead" class="playhead"></div>
+        <div id="tooltip" class="tooltip hidden"></div>
+      </div>
+      <div class="legend">
+        <span><i class="dot in"></i><span data-i18n="lgIn"></span></span>
+        <span><i class="dot out"></i><span data-i18n="lgOut"></span></span>
+        <span><i class="dot close"></i><span data-i18n="lgClose"></span></span>
+        <span><i class="dot unknown"></i><span data-i18n="lgUnknown"></span></span>
+        <span><i class="tick"></i><span data-i18n="lgShot"></span></span>
+      </div>
+    </section>
+
+    <!-- Colonne de droite : calques, statistiques, mini-carte -->
+    <aside class="side right">
+      <div class="card">
+        <h2 data-i18n="layers"></h2>
+        <div class="toggles">
+          <label class="toggle"><input type="checkbox" data-layer="court" checked><span class="sw"></span><span data-i18n="lyCourt"></span></label>
+          <label class="toggle"><input type="checkbox" data-layer="ball" checked><span class="sw"></span><span data-i18n="lyBall"></span></label>
+          <label class="toggle"><input type="checkbox" data-layer="trail" checked><span class="sw"></span><span data-i18n="lyTrail"></span></label>
+          <label class="toggle"><input type="checkbox" data-layer="bounces" checked><span class="sw"></span><span data-i18n="lyBounces"></span></label>
+          <label class="toggle"><input type="checkbox" data-layer="speed" checked><span class="sw"></span><span data-i18n="lySpeed"></span></label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 data-i18n="stats"></h2>
+        <div class="stats">
+          <div class="stat in"><b id="stIn">–</b><span data-i18n="stIn"></span></div>
+          <div class="stat out"><b id="stOut">–</b><span data-i18n="stOut"></span></div>
+          <div class="stat close"><b id="stClose">–</b><span data-i18n="stClose"></span></div>
+          <div class="stat"><b id="stShots">–</b><span data-i18n="stShots"></span></div>
+        </div>
+        <div class="stats speed">
+          <div class="stat"><b id="stMax">–</b><span data-i18n="stMax"></span></div>
+          <div class="stat"><b id="stAvg">–</b><span data-i18n="stAvg"></span></div>
+          <div class="stat"><b id="stServe">–</b><span data-i18n="stServe"></span></div>
+        </div>
+        <ul id="bounceList" class="bounce-list"></ul>
+      </div>
+
+      <div class="card minimap-card">
+        <h2 data-i18n="minimap"></h2>
+        <div class="minimap-wrap">
+          <svg id="minimap" viewBox="-3 -3 16.97 29.77" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+          <div id="minimapTip" class="tooltip hidden"></div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <div id="dropOverlay" class="drop-overlay hidden"><div data-i18n="dropHere"></div></div>
+  <div id="toast" class="toast hidden"></div>
+  <script src="app.js?v=5"></script>
+</body>
+</html>
