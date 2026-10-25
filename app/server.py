@@ -6,6 +6,7 @@ Bibliotheque : dossier videos\\ (glisser une video dans l'interface l'y copie).
 Les analyses tournent une par une en arriere-plan (scripts\\pipeline.py) ; l'interface suit leur
 progression. Resultats : runs\\analysis\\<nom>\\analysis.json, dessines en direct par le navigateur.
 """
+import importlib
 import json
 import queue
 import re
@@ -64,6 +65,10 @@ def worker():
             state["current"] = job
         job.update(status="running", started=time.time())
         try:
+            # toujours la derniere version du code d'analyse, meme si le serveur tourne depuis longtemps
+            # (sinon une mise a jour des scripts n'est prise en compte qu'apres un redemarrage)
+            for mod in ("predict_court", "predict_video_yolo", "detect_bounces", "detect_players", "pipeline", "render_overlay"):
+                importlib.reload(sys.modules[mod])
             if job["type"] == "analyze":
                 def progress(step, frac, msg):
                     done = sum(w for k, _, w in pipeline.STEPS[:[s[0] for s in pipeline.STEPS].index(step)])
@@ -103,11 +108,20 @@ def list_videos():
     for p in sorted(VIDEOS.iterdir()):
         if p.suffix.lower() not in EXTS:
             continue
-        a = pipeline.ANALYSIS / p.stem / "analysis.json"
+        a = sys.modules["pipeline"].ANALYSIS / p.stem / "analysis.json"
         ex = sorted((pipeline.ANALYSIS / p.stem).glob("export_*.mp4")) if a.exists() else []
+        outdated = False
+        if a.exists():
+            try:
+                with open(a, encoding="utf-8") as fh:
+                    head = fh.read(4000)  # la version est au debut du fichier
+                ver = json.loads(head.split(',"created"')[0] + "}").get("version", 0) if '"version"' in head else 0
+                outdated = ver < sys.modules["pipeline"].PIPELINE_VERSION
+            except (ValueError, OSError):
+                outdated = True
         info = pipeline.video_info(p)
         out.append(dict(name=p.name, stem=p.stem, size_mb=round(p.stat().st_size / 1e6, 1), **info,
-                        analyzed=a.exists(), exports=[e.name for e in ex],
+                        analyzed=a.exists(), outdated=outdated, exports=[e.name for e in ex],
                         analyzed_at=time.strftime("%d/%m %H:%M", time.localtime(a.stat().st_mtime)) if a.exists() else None))
     return out
 

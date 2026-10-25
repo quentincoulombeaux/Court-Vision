@@ -17,6 +17,7 @@ import math
 from pathlib import Path
 
 import cv2
+import numpy as np
 import torch
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -81,6 +82,83 @@ def link_track(cands, width, lost=5, gate=0.03, min_conf=0.15, acquire_conf=0.3)
             hist.append((f, x, y))
             rows.append(dict(Frame=f, X=int(round(x)), Y=int(round(y)), Visibility=1, Confidence=round(c, 4)))
     return rows
+
+
+def _poly(ts, pts, deg):
+    """Ajuste x(t), y(t) par un polynome de degre deg ; renvoie (fonction, ecart max en px)."""
+    ts, pts = np.asarray(ts, float), np.asarray(pts, float)
+    deg = min(deg, len(ts) - 1)
+    cx, cy = np.polyfit(ts, pts[:, 0], deg), np.polyfit(ts, pts[:, 1], deg)
+    f = lambda t: np.c_[np.polyval(cx, t), np.polyval(cy, t)]  # noqa: E731
+    return f, float(np.abs(f(ts) - pts).max())
+
+
+def fill_gaps(rows, cands=None, height=720, max_gap=8, side=4):
+    """Comble les trous du suivi (balle perdue quelques images : flou, rebond, filet, joueur devant).
+      1. Recuperation : dans le trou, un candidat YOLO ecarte (confiance plus faible) situe la ou la balle
+         devrait etre (interpolation entre les deux bords du trou) est repris.
+      2. Interpolation physique : une seule parabole (la gravite) si les deux morceaux de trajectoire la
+         suivent ; sinon, c'est qu'un REBOND (ou une frappe) a eu lieu dans le trou : on prolonge chaque
+         morceau par sa propre parabole jusqu'a leur point de rencontre, qui reconstitue l'evenement manque.
+    Les positions ajoutees ont Visibility = 2 (1 = vue par YOLO)."""
+    k = height / 720
+    obs = {r["Frame"]: (r["X"], r["Y"]) for r in rows if r["Visibility"]}
+    added = {}
+
+    def gaps():
+        fs = sorted(set(obs) | set(added))
+        return [(a, b) for a, b in zip(fs, fs[1:]) if 1 < b - a <= max_gap + 1]
+
+    def pos(f):
+        return added.get(f, obs.get(f))
+
+    # 1. recuperation de detections ecartees
+    if cands is not None:
+        for a, b in gaps():
+            pa, pb = np.array(pos(a), float), np.array(pos(b), float)
+            for f in range(a + 1, b):
+                pred = pa + (pb - pa) * (f - a) / (b - a)
+                near = [(math.dist((x, y), pred), x, y) for c, x, y in (cands[f] if f < len(cands) else [])]
+                near = [n for n in near if n[0] <= max(12 * k, 0.25 * math.dist(pa, pb))]
+                if near:
+                    _, x, y = min(near)
+                    added[f] = (x, y)
+    # 2. interpolation (une parabole) ou reconstitution du rebond (deux paraboles qui se rejoignent)
+    for a, b in gaps():
+        before = [f for f in range(a - 2 * side, a + 1) if pos(f) is not None][-side:]
+        after = [f for f in range(b, b + 2 * side) if pos(f) is not None][:side]
+        if len(before) < 2 or len(after) < 2 or before[-1] - before[0] > 2 * side or after[-1] - after[0] > 2 * side:
+            continue
+        both = before + after
+        fit, err = _poly(both, [pos(f) for f in both], 2)
+        missing = np.arange(a + 1, b)
+        if err <= 3 * k:
+            for f, p in zip(missing, fit(missing)):
+                added[int(f)] = (float(p[0]), float(p[1]))
+            continue
+        # deux morceaux : prolonges par des droites (une parabole ajustee sur 4 points bruites s'emballe
+        # des qu'on la prolonge) ; ils doivent se rejoindre a une distance raisonnable vu la taille du trou
+        fb, eb = _poly(before[-3:], [pos(f) for f in before[-3:]], 1)
+        fa, ea = _poly(after[:3], [pos(f) for f in after[:3]], 1)
+        if max(eb, ea) > 5 * k:
+            continue
+        tt = np.linspace(a, b, 8 * (b - a) + 1)
+        d = np.linalg.norm(fb(tt) - fa(tt), axis=1)
+        i = int(np.argmin(d))
+        if d[i] > max(6 * k, 0.2 * math.dist(pos(a), pos(b))):
+            continue  # les deux morceaux ne se rejoignent pas : on ne devine rien
+        t_meet = tt[i]
+        for f in missing:
+            p = (fb if f <= t_meet else fa)(np.array([f]))[0]
+            added[int(f)] = (float(p[0]), float(p[1]))
+    out = []
+    for r in rows:
+        f = r["Frame"]
+        if not r["Visibility"] and f in added:
+            x, y = added[f]
+            r = dict(Frame=f, X=int(round(x)), Y=int(round(y)), Visibility=2, Confidence=0.0)
+        out.append(r)
+    return out
 
 
 def track_ball(video, model, conf=0.10, imgsz=1280, device="cpu", max_frames=0, progress=None):

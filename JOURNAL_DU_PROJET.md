@@ -542,6 +542,231 @@ Cette méthode n'était pas fiable et a été abandonnée.
 **Précision estimée : environ ±10 %**, et environ ±7 % de timing en plus sur les vidéos à 15
 images distinctes par seconde. L'effet de la balle (lift, slice) n'est pas modélisé.
 
+### 13.4 Six améliorations (23 octobre)
+
+**Modèles**
+
+1. **Combler les trous du suivi** (`predict_video_yolo.fill_gaps`).
+   - D'abord, une détection YOLO écartée est reprise si elle tombe là où la balle devrait être.
+   - Sinon, une seule parabole relie les deux morceaux de trajectoire.
+   - Si une parabole ne suffit pas, un rebond a eu lieu dans le trou : chaque morceau est prolongé
+     par une droite jusqu'à leur point de rencontre, ce qui reconstitue le rebond. Des paraboles
+     extrapolées s'emballaient, d'où le choix des droites.
+   - Mesure avec simulation de balle perdue 2 à 6 images : F1 0,827 → **0,851** (18 rebonds
+     retrouvés). Trajectoires propres : inchangé (0,888).
+   - Sur Alcaraz–Shelton : 48 positions reconstituées.
+2. **Détection des joueurs** (`scripts/detect_players.py`).
+   - YOLO11n COCO « person », une image sur deux. Les pieds sont projetés sur le court.
+   - Zone plausible : le court élargi, en excluant les abords des poteaux.
+   - Un joueur de chaque côté du filet, suivi par continuité avec une **vitesse humaine maximale de
+     9 m/s**. Une première version, trop tolérante (6 m en 4 images), avait accroché une personne
+     immobile près de la chaise d'arbitre.
+   - Utilisations : calque « Joueurs », positions en direct sur la carte, **règle du carré de
+     service** (`serve_boxes` : carré en diagonale du serveur), et hauteur de frappe.
+3. **Vitesse plus précise** (`fit_shot_3d`).
+   - Reconstruction 3D du vol : gravité, frottement de l'air, et projection avec l'approximation
+     locale de la caméra. L'ajustement (Levenberg-Marquardt, 6 inconnues) porte sur **toutes** les
+     positions observées, avec la contrainte « touche le sol au rebond ».
+   - Hauteur de frappe de départ = **taille du joueur** : 1,85 m × (pieds − balle) / hauteur de la
+     boîte. La mesure par l'échelle du court donnait des valeurs irréalistes (3 m) près du joueur
+     proche.
+   - Contrainte serrée (`H_SIGMA = 0,1 m`) : avec 0,6 m, l'ajustement remontait la frappe à 3 m
+     pour compenser le modèle de caméra simplifié.
+   - Repli sur la méthode à deux points si l'ajustement dépasse 4 px d'écart.
+   - Résultats : Alcaraz (service, Wimbledon) 197 km/h, Shelton (service) 147 km/h, échanges 100 à
+     168 km/h.
+
+**Interface**
+
+4. **Relecture de l'impact** (`features.js`, touche R). Rendu 3D sur canvas, avec une caméra
+   virtuelle placée derrière le frappeur :
+   - la balle suit la trajectoire 3D reconstruite, au ralenti ;
+   - puis la caméra descend à la verticale de la trace, dessinée en ellipse dans le sens du coup ;
+   - les lignes sont dessinées à leur vraie largeur (5 cm, 10 cm pour les lignes de fond) ;
+   - la distance trace → ligne est affichée en cm.
+5. **Carte de chaleur** : densité des rebonds sur une grille de 10 cm (noyau gaussien de 0,9 m,
+   rampe jaune → orange → rouge), filtrable (tous / bonnes / fautes).
+6. **Rapport du match** : page imprimable / PDF avec résumé, carte des rebonds, carte de chaleur,
+   graphique des vitesses et tableau des rebonds. Plus un export CSV.
+
+### 13.5 Corrections sur deux nouvelles vidéos (Rune–Kecmanovic, 23 octobre)
+
+- **La cause principale des erreurs n'était pas le calcul.** Ces vidéos avaient été analysées par un
+  serveur lancé avant les dernières mises à jour, qui faisait tourner l'ancien code : pas de
+  joueurs, pas de carré de service. Deux corrections :
+  - le serveur recharge le code d'analyse avant chaque tâche ;
+  - chaque analyse porte un `PIPELINE_VERSION`, et l'interface affiche le badge « À mettre à jour »
+    quand il est dépassé.
+- **Frappes prises pour des rebonds.** Une cassure en demi-tour (≥ 140°) dans la zone de frappe d'un
+  joueur détecté devient une frappe. Mesuré sur les annotations : un angle supérieur à 150° concerne
+  45 % des frappes, contre 7 % des rebonds. La règle s'applique aussi aux « rebonds hauts », mais
+  seulement s'il y a demi-tour : un rebond juste devant le joueur proche apparaît au-dessus de ses
+  pieds dans l'image.
+- **Rebonds manqués** sur une vidéo à images dupliquées (environ 15 positions distinctes par
+  seconde, parfois une seule position entre le rebond et la frappe). Une deuxième passe avec des
+  segments de 3 positions cherche un rebond dans les intervalles entre frappes qui n'en ont pas
+  (au moins 0,7 s). Effet neutre sur les annotations (F1 0,887).
+
+- **Instant et position du contact au sol.** Sur `rune_kecmanovic_1`, le rebond 512 était annoncé
+  dans le couloir alors que la balle était bonne. Le contact était placé à la frame 513,3, soit après
+  que la balle avait franchi la ligne en remontant ; le vrai point bas était à la frame 510,3. La
+  coupure « deux paraboles » glissait d'un cran sur les images dupliquées.
+  - Correction : quand la trajectoire a un vrai point bas (descente puis remontée d'au moins 1 px de
+    chaque côté), le contact est le sommet de la parabole passant par ce point et ses voisins, avec
+    la position latérale interpolée au même instant (`lowest_point`).
+  - Un simple palier (rebond dans l'axe côté proche) garde l'ancienne méthode. Sans cette exigence,
+    le rebond 138 d'Alcaraz–Shelton, sur la ligne, passait à tort en faute.
+  - Résultat : 512 bon, à 17 cm à l'intérieur ; 138 reste « limite ». Sur les annotations, l'erreur
+    médiane passe de 3,9 à **3,0 px**, et 77 % des contacts tombent sous le centre annoté de la
+    balle (physiquement attendu), contre 60 % avant. `PIPELINE_VERSION = 9`.
+
+- **Service non reconnu et verdict trop tranché** (`rune_kecmanovic_1`, premier rebond).
+  - Le service est maintenant reconnu aussi par la **signature du lancer** (`is_toss`) : la balle
+    redescend du lancer et accélère déjà un peu avant l'impact. Deux garde-fous : au moins 0,7 s de
+    vidéo avant la frappe, et un rebond à moins de 2,5 m du carré (sinon l'échange continuait, ce
+    n'était pas un service).
+  - **Zone « limite » adaptée à la précision locale** (`position_error`). Environ 1,5 px de
+    précision sur le centre de la balle, convertis avec l'échelle locale du court. Côté éloigné
+    d'une vidéo en 632 px de haut, 1 px vaut près de 10 cm en profondeur ; la zone orange vaut au
+    moins cette incertitude, dans l'axe de la ligne la plus proche. L'interface affiche « ±x cm ».
+  - Résultat : le service passe de faute (12 cm) à **limite (±15 cm)**. `PIPELINE_VERSION = 11`.
+
+- **Frappe de Rune prise pour un rebond** (`rune_kecmanovic_2`, 6e rebond, frame 234 au lieu de 226).
+  - La règle « demi-tour dans la zone d'un joueur » testait le point de contact recalculé, sorti de
+    la zone de 3 px. Elle teste maintenant la **position observée** de la balle, avec une zone élargie
+    à ±0,8 fois la largeur du joueur.
+  - Pour ne pas emporter les rebonds hauts à côté d'un joueur (rebond 489–491 d'Alcaraz–Shelton,
+    cassure de 155°), deux conditions sont ajoutées :
+    - un seuil de demi-tour à **155°** (les frappes concernées font 167–171°) ;
+    - une **accélération** : dans les 0,2 s qui suivent, la balle repart au moins 1,5 fois plus vite.
+      Après un rebond, au contraire, elle ralentit.
+  - Résultat : seul ce rebond change (234 → 226) sur les 5 vidéos. F1 sur les annotations : 0,889.
+
+- **Federer–Nadal (Open d'Australie 2017).**
+  - La vidéo avait encore été analysée avec un ancien code (« version None »), d'où le 2e rebond
+    annoncé faute ; il est bon avec le code actuel.
+  - Corrections, sans régression sur les annotations (F1 0,889 → **0,892**, 0,883 avec bruit) :
+    - au moins **0,15 s** entre une frappe et le rebond suivant, et **0,35 s** si la frappe a eu
+      lieu dans la raquette d'un joueur détecté, car la balle doit traverser le court (faux rebond
+      de 7 s sur la balle qui accélère encore après la frappe). La seconde passe applique la même
+      règle ;
+    - un **départ accéléré vers le haut** depuis la zone d'un joueur est une frappe, même sans
+      demi-tour (14,67 s, ce qui libère le rebond éloigné de 15,4 s) ;
+    - un point bas suivi d'un **ralentissement franc** sur les 2 positions suivantes est un rebond,
+      même si la frappe suit 5 images plus tard (rebond de 11,93 s). Un « rebond haut » dans la
+      raquette n'est converti en frappe que si la balle accélère dans les 0,1 s.
+  - `PIPELINE_VERSION = 13`.
+
+- **Continuité du point** (idée de l'utilisateur ; les vidéos contiennent un seul point).
+  - Une balle faute termine l'échange. Si un rebond est jugé faute (en simple) alors que l'échange
+    continue, c'est-à-dire qu'un rebond bon suit avec au moins une frappe entre les deux, ce n'était
+    pas un rebond. Il est imposé comme frappe et la détection est relancée, ce qui trouve le vrai
+    rebond de l'intervalle (`continuity_violations`, boucle dans `analyze`, `extra_shots` dans
+    `find_bounces`).
+  - Exceptions : une faute au service suivie d'un nouveau service (seconde balle), et les rebonds
+    après la fin du point (aucune frappe entre la faute et ces rebonds).
+  - Testé sur des cas construits ; aucun effet sur les 8 vidéos, dont les fautes sont toutes en fin
+    de point. Sur `alcaraz_djokovic_wim`, l'erreur signalée venait de l'ancien code du serveur : avec
+    le code actuel, le premier rebond (frame 15) est bien dans le carré de service.
+    `PIPELINE_VERSION = 14`.
+
+### 13.6 Deux règles de cohérence du point (24 octobre)
+
+Les vidéos ne contiennent qu'un seul point, ce qui permet de vérifier la logique de l'échange.
+
+- **Règle 1 : une faute suivie d'un bon rebond n'était pas un rebond.** Un rebond « out »
+  directement suivi d'un rebond bon est forcé en frappe, puis la détection est relancée sur
+  l'intervalle (`fault_then_good`).
+  - Exception : une faute au service suivie d'un second service.
+- **Règle 2 : pas deux rebonds d'affilée du même côté** si un rebond de l'autre côté suit dans le
+  point (`same_side_pairs`). Le moins fiable des deux est écarté, puis la détection est relancée.
+  - Exception : une volée entre les deux, c'est-à-dire au moins deux frappes.
+  - Seul un rebond situé dans la zone de frappe d'un joueur est retiré : c'est alors une frappe
+    mal classée. Sinon, il manque plutôt un rebond entre les deux, et en supprimer un serait pire
+    (cas réels : Alcaraz–Shelton 530/594, Federer 644).
+- **Le terrain doit être crédible.** Un rebond n'est placé que si le terrain est détecté à
+  ±3 images près.
+  - La détection du terrain est refusée si la confiance médiane des 14 points est sous 0,85 ou si
+    moins de 10 points sont sûrs.
+  - Cela supprime les terrains « hallucinés » sur les gros plans. Sur Roland-Garros 2023, un faux
+    rebond « bon » à l'image 430, pendant le gros plan final, faisait effacer par la règle 1 la
+    vraie faute finale de l'image 410.
+- `PIPELINE_VERSION = 16`. Toutes les vidéos ont été ré-analysées.
+- **Complément (v17).** Quand il n'y a aucune frappe entre deux rebonds du même côté, la balle
+  n'a pas pu changer de côté : un seul des deux est le vrai rebond. On garde le point le plus bas
+  à l'image, même hors de la zone de frappe d'un joueur. Cela corrige Federer–Nadal 2 : le rebond
+  9.97 s est gardé, celui de 10.10 s (une cassure sur la montée) est retiré. Les autres vidéos sont
+  inchangées. `PIPELINE_VERSION = 17`.
+- **Reste à corriger :** sur Roland-Garros 2023, le rebond côté éloigné vers l'image 293 est pris
+  pour une frappe (291), car il tombe juste devant le joueur.
+
+### 13.7 Vidéo best_point (25 octobre)
+
+L'analyse affichée avait été faite par l'ancien serveur (« version None »), donc sans les règles du
+point. Avec le code à jour, il restait quatre erreurs, toutes corrigées. `PIPELINE_VERSION = 20`.
+
+- **Rebond du service (frame 40) manqué.** La seconde passe retenait à la place la frappe du
+  relanceur (frame 47). Elle ignore maintenant les demi-tours (≥ 155°) dans la zone de raquette
+  d'un joueur.
+- **Rebond de 31,82 s (frame 955) pris pour la frappe.** La balle touche le sol au pied du joueur,
+  qui la reprend pendant un trou du suivi (`hidden_hit`). Si la balle file au moins 1,6 fois plus
+  vite juste après le trou, le point bas était le rebond et la frappe a eu lieu dans le trou.
+  - Condition ajoutée : pas de rebond net dans la demi-seconde précédente. Sinon la règle se
+    trompait sur Rune–Kecmanovic 2 (frame 541).
+- **Rebond de 32,90 s (frame 986) remplacé par une fausse faute à 1010.** La cassure la plus forte
+  de l'intervalle était le second rebond du coup gagnant, hors du terrain.
+  - `find_bounces` garde une cassure nette plus précoce (kick ≥ 0,8, au moins 0,3 s avant) dans
+    `first`.
+  - Si le rebond retenu tombe faute et que `first` tombe dans le terrain, le pipeline prend
+    `first`.
+  - Cette décision est prise dans le pipeline et non dans le détecteur, car choisir
+    systématiquement le premier rebond faisait baisser le F1 à 0,886.
+- **Deux rebonds d'affilée du même côté (392 / 461).** Il manquait le rebond éloigné (frame 427),
+  tombé juste devant le joueur du fond. Les fausses frappes au sommet du lob (416, 421, 432) le
+  masquaient.
+  - Nouvelle règle : un joueur ne frappe pas deux fois de suite sans rebond. Deux « frappes »
+    autour du même joueur, à moins de 1 s d'intervalle et sans rebond entre elles : seule la
+    dernière compte (`same_player_gap`, joueur identifié avec `serve_zone`, qui renvoie maintenant
+    son côté).
+  - Cela corrige aussi le rebond 293 de Roland-Garros 2023.
+- **Paire 659 / 724 laissée telle quelle.** Les deux rebonds sont réels : le rebond côté proche
+  (~697) a lieu alors que la balle est cachée derrière le joueur, et le suivi s'accroche à sa tête.
+  Ce rebond est invisible.
+- **Évaluation sur les annotations TrackNet :** F1 0,892 sans bruit, 0,883 avec bruit, inchangé.
+
+### 13.8 Rebond caché derrière un joueur (25 octobre)
+
+**Le cas.** Dans `best_point`, à 23,20 s, le rebond côté proche a lieu alors que la balle est
+cachée par le joueur, et le suivi s'accroche à sa tête. Le rebond n'est pas visible, mais on
+peut le déduire (`hidden_bounces`).
+
+**Quand la reconstruction se déclenche.** Toutes ces conditions doivent être réunies :
+- deux frappes de part et d'autre du filet, sans rebond détecté entre elles, à au moins 0,6 s
+  d'intervalle ;
+- le receveur n'est pas au filet (à plus de 4,5 m), sinon ce serait une volée.
+
+**Comment le rebond est retrouvé.**
+1. On garde les positions vues entre la frappe (+4 images) et le moment où la balle « entre »
+   dans la boîte du receveur. Les images dupliquées sont écartées.
+2. Les instants sont régularisés avec `sample_times`, parce que la vidéo vient d'une caméra à
+   ~20 im/s convertie en 30. Sans ça, les écarts alternaient et la reconstruction échouait.
+3. On reconstruit le vol en 3D (gravité + frottement de l'air), avec une hauteur de frappe
+   supposée de 1 m (± 0,4 m).
+4. On cherche l'instant où la balle touche le sol.
+
+**Conditions d'acceptation :**
+- erreur moyenne ≤ 4 px (pour du 720p) ;
+- contact au plus 2 images avant la dernière position vue ;
+- contact de l'autre côté du filet, à moins de 1 m des lignes.
+
+**Résultat.**
+- Le rebond est marqué `hidden`. Son incertitude est d'au moins ±40 cm en largeur et ±60 cm en
+  profondeur.
+- L'interface affiche « estimé, balle cachée ».
+- `best_point` : rebond reconstitué à 23,17 s, en (2,79 ; 18,05) m, bon. Aucun effet sur les
+  12 autres vidéos.
+- `PIPELINE_VERSION = 22`. Fichiers de l'interface en `?v=12`.
+
 ---
 
 ## 14. État final du système

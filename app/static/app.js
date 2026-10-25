@@ -12,17 +12,25 @@ const I18N = {
     tPrevBounce: "Previous bounce (Shift+B)", tNextBounce: "Next bounce (B)", tMute: "Sound on / off (M)", tRerun: "Re-run the full analysis",
     rate05: "0.5×", rate025: "0.25×",
     lgIn: "In", lgOut: "Out", lgClose: "Close call", lgUnknown: "Not judgeable", lgShot: "Shot",
-    layers: "Layers", lyCourt: "Court", lyBall: "Ball", lyTrail: "Trail", lyBounces: "Bounces", lySpeed: "Speed",
+    layers: "Layers", lyCourt: "Court", lyBall: "Ball", lyTrail: "Trail", lyBounces: "Bounces", lySpeed: "Speed", lyPlayers: "Players",
+    mmPoints: "Points", mmHeat: "Heatmap", reportBtn: "Match report", csvBtn: "CSV",
+    tReplay: "Line-call replay (R)", replayAgain: "Replay", tClose: "Close (Esc)", boxNote: "service box", hiddenNote: "estimated, ball hidden",
+    rp: { title: "Match report", print: "Print / save as PDF", csv: "Download CSV", summary: "Summary", judged: "Judged bounces",
+          maps: "Bounce maps", mapPoints: "Every bounce, coloured by call", mapHeat: "Bounce density",
+          speeds: "Shot speeds", speedNote: "Each bar is a shot followed by a bounce (dark bars: serves). Estimated speed at the racket, about ±10 %.",
+          bounces: "Bounces", time: "Time", call: "Call", dist: "Distance to the line", speed: "Speed",
+          disclaimer: "Automatic analysis from broadcast video: calls near the lines are indicative (about ±10–30 cm).",
+          popup: "Allow pop-ups to open the report." },
     stats: "Statistics", stIn: "In", stOut: "Out", stClose: "Close", stShots: "Shots",
     stMax: "Top speed", stAvg: "Avg speed", stServe: "Top serve", serveTag: "SERVE",
     minimap: "Bounce map", noBounce: "No bounce yet",
     dropHere: "Drop the video to add it to the library",
-    analyzed: "Analyzed", toAnalyze: "Not analyzed", queued: "Queued",
+    analyzed: "Analyzed", toAnalyze: "Not analyzed", queued: "Queued", outdated: "Update", tOutdated: "Analysed with an older version: re-run it (↻) to benefit from the latest improvements",
     notAnalyzed: "Video not analyzed", analysisQueued: "Analysis queued…", analysisRunning: "Analysis running…",
     keepWatching: "You can keep watching other videos meanwhile.",
     analyzeText: "Court, ball, bounces, then in / out call. About {m} min on this PC ({n} frames).",
     left: "~{t} left", min: "{n} min", sec: "{n} s",
-    steps: { court: "Court", ball: "Ball", bounces: "Bounces", judge: "Line call" },
+    steps: { court: "Court", players: "Players", ball: "Ball", bounces: "Bounces", judge: "Line call" },
     jobAnalyze: "Analysis", jobExport: "Export",
     inside: "{d} inside", outside: "{d} out", noCourt: "court not visible",
     frame: "frame {n}", exportLink: "↓ {mode} export (MP4)", modeSimple: "Singles", modeDouble: "Doubles",
@@ -40,17 +48,25 @@ const I18N = {
     tPrevBounce: "Rebond précédent (Maj+B)", tNextBounce: "Rebond suivant (B)", tMute: "Son activé / coupé (M)", tRerun: "Relancer toute l'analyse",
     rate05: "0,5×", rate025: "0,25×",
     lgIn: "Bonne", lgOut: "Faute", lgClose: "Limite", lgUnknown: "Non jugeable", lgShot: "Frappe",
-    layers: "Calques", lyCourt: "Terrain", lyBall: "Balle", lyTrail: "Traînée", lyBounces: "Rebonds", lySpeed: "Vitesse",
+    layers: "Calques", lyCourt: "Terrain", lyBall: "Balle", lyTrail: "Traînée", lyBounces: "Rebonds", lySpeed: "Vitesse", lyPlayers: "Joueurs",
+    mmPoints: "Points", mmHeat: "Chaleur", reportBtn: "Rapport du match", csvBtn: "CSV",
+    tReplay: "Relecture de l'impact (R)", replayAgain: "Revoir", tClose: "Fermer (Échap)", boxNote: "carré de service", hiddenNote: "estimé, balle cachée",
+    rp: { title: "Rapport du match", print: "Imprimer / enregistrer en PDF", csv: "Télécharger le CSV", summary: "Résumé", judged: "Rebonds jugés",
+          maps: "Cartes des rebonds", mapPoints: "Tous les rebonds, colorés selon le verdict", mapHeat: "Densité des rebonds",
+          speeds: "Vitesse des frappes", speedNote: "Chaque barre est une frappe suivie d'un rebond (barres foncées : services). Vitesse estimée à la raquette, environ ±10 %.",
+          bounces: "Rebonds", time: "Temps", call: "Verdict", dist: "Distance à la ligne", speed: "Vitesse",
+          disclaimer: "Analyse automatique d'une vidéo de retransmission : les verdicts près des lignes sont indicatifs (environ ±10 à 30 cm).",
+          popup: "Autorise les fenêtres pop-up pour ouvrir le rapport." },
     stats: "Statistiques", stIn: "Bonnes", stOut: "Fautes", stClose: "Limites", stShots: "Frappes",
     stMax: "Vitesse max", stAvg: "Vitesse moy.", stServe: "Service max", serveTag: "SERVICE",
     minimap: "Carte des rebonds", noBounce: "Pas encore de rebond",
     dropHere: "Dépose la vidéo pour l'ajouter à la bibliothèque",
-    analyzed: "Analysée", toAnalyze: "À analyser", queued: "En attente",
+    analyzed: "Analysée", toAnalyze: "À analyser", queued: "En attente", outdated: "À mettre à jour", tOutdated: "Analysée avec une ancienne version : relance-la (↻) pour profiter des dernières améliorations",
     notAnalyzed: "Vidéo non analysée", analysisQueued: "Analyse en attente…", analysisRunning: "Analyse en cours…",
     keepWatching: "Tu peux continuer à regarder les autres vidéos pendant ce temps.",
     analyzeText: "Terrain, balle, rebonds puis jugement in / out. Compte environ {m} min sur ce PC ({n} images).",
     left: "encore ~{t}", min: "{n} min", sec: "{n} s",
-    steps: { court: "Terrain", ball: "Balle", bounces: "Rebonds", judge: "Jugement" },
+    steps: { court: "Terrain", players: "Joueurs", ball: "Balle", bounces: "Rebonds", judge: "Jugement" },
     jobAnalyze: "Analyse", jobExport: "Export",
     inside: "{d} dans le terrain", outside: "{d} dehors", noCourt: "terrain non visible",
     frame: "image {n}", exportLink: "↓ Export {mode} (MP4)", modeSimple: "simple", modeDouble: "double",
@@ -89,7 +105,8 @@ const $ = (id) => document.getElementById(id);
 const video = $("video"), canvas = $("overlay"), ctx = canvas.getContext("2d");
 const S = {
   videos: [], current: null, analysis: null, ball: new Map(), homs: new Map(),
-  layers: { court: true, ball: true, trail: true, bounces: true, speed: true },
+  layers: { court: true, ball: true, trail: true, bounces: true, speed: true, players: true },
+  mmMode: "points",
   doubles: false, closeCm: 5, jobs: null, slowmoUntil: null,
 };
 
@@ -113,18 +130,29 @@ function signedDistance([x, y], doubles) {          // < 0 dedans, > 0 dehors (m
   const dx = Math.max(x0 - x, x - x1), dy = Math.max(-y, y - L);
   return dx > 0 && dy > 0 ? Math.hypot(dx, dy) : Math.max(dx, dy);
 }
+// distance signee (m) au bord de la zone jugee (< 0 dedans) et axe du bord le plus proche
+function edgeDistance(c, [x0, x1, y0, y1]) {
+  const dx = Math.max(x0 - c[0], c[0] - x1), dy = Math.max(y0 - c[1], c[1] - y1);
+  return [dx > 0 && dy > 0 ? Math.hypot(dx, dy) : Math.max(dx, dy), dx >= dy ? 0 : 1];
+}
+const judgedRect = (b) => b.box || (S.doubles ? [0, DW, 0, L] : [AL, DW - AL, 0, L]);
 function verdict(b) {
   if (!b.court) return "unknown";
-  const s = signedDistance(b.court, S.doubles);
-  if (Math.abs(s) <= S.closeCm / 100) return "close";
+  // un rebond de service est juge sur le carre de service en diagonale (b.box), sinon sur le court ;
+  // la zone "limite" vaut au moins l'incertitude de mesure a cet endroit du court (b.err)
+  const [s, axis] = edgeDistance(b.court, judgedRect(b));
+  const margin = Math.max(S.closeCm / 100, b.err ? b.err[axis] : 0);
+  if (Math.abs(s) <= margin) return "close";
   return s < 0 ? "in" : "out";
 }
 const label = (v) => t("labels")[v];
 function describe(b) {
   if (!b.court) return t("noCourt");
-  const s = signedDistance(b.court, S.doubles), a = Math.abs(s);
+  const [s, axis] = edgeDistance(b.court, judgedRect(b)), a = Math.abs(s);
   const d = a >= 1 ? `${num(a, 2)} m` : `${Math.round(a * 100)} cm`;
-  return t(s < 0 ? "inside" : "outside", { d });
+  const u = b.err ? ` ±${Math.max(1, Math.round(b.err[axis] * 100))} cm` : "";
+  return t(s < 0 ? "inside" : "outside", { d }) + u + (b.box ? ` (${t("boxNote")})` : "") +
+    (b.hidden ? ` (${t("hiddenNote")})` : "");
 }
 
 // ---------- canvas : taille et repere (pixels de la video) ----------
@@ -258,6 +286,7 @@ function render() {
   const f = frameAt(video.currentTime);
   const H = S.homs.get(f);
   if (S.layers.court && H) drawCourt(H, px);
+  if (S.layers.players) drawPlayers(f, H, px);
   if (S.layers.bounces) {
     for (const b of S.analysis.bounces) {
       if (b.frame > f) break;
@@ -289,12 +318,18 @@ function drawMinimapBase() {
 function updateMinimap(force = false) {
   const f = S.analysis ? frameAt(video.currentTime) : -1;
   const shown = S.analysis ? S.analysis.bounces.filter((b) => b.frame <= f && b.court) : [];
-  const key = `${S.current && S.current.name}|${shown.length}|${S.doubles}|${S.closeCm}|${LANG}`;
+  const key = `${S.current && S.current.name}|${shown.length}|${S.doubles}|${S.closeCm}|${LANG}|${S.mmMode}`;
   if (!force && key === mmState.key) return;
   const grew = mmState.key && key.split("|")[0] === mmState.key.split("|")[0] && shown.length > (mmState.count || 0);
   mmState = { key, count: shown.length };
   const g = drawMinimapBase();
   const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+  if (S.mmMode === "heat") { drawHeat(g); return; }   // carte de chaleur : tous les rebonds de la video
+  const lastServe = [...shown].reverse().find((b) => b.box);
+  if (lastServe && shown[shown.length - 1] === lastServe) {   // service en cours : le carre vise
+    const [x0, x1, y0, y1] = lastServe.box;
+    svgEl("rect", { class: "serve-box", x: x0, y: y0, width: x1 - x0, height: y1 - y0 }, g);
+  }
   shown.forEach((b, i) => {
     const v = verdict(b), cx = clamp(b.court[0], -2.8, DW + 2.8), cy = clamp(b.court[1], -2.8, L + 2.8);
     const last = i === shown.length - 1;
@@ -320,6 +355,7 @@ function updateMinimap(force = false) {
 
 function tick() {
   render(); updateTimeUI(); updateMinimap();
+  if (S.analysis) updateMinimapPlayers(frameAt(video.currentTime));
   if (S.slowmoUntil !== null && video.currentTime > S.slowmoUntil) { video.playbackRate = currentRate(); S.slowmoUntil = null; }
   requestAnimationFrame(tick);
 }
@@ -409,8 +445,11 @@ function refreshVerdicts() {
   for (const b of S.analysis.bounces) {
     const v = verdict(b); c[v]++;
     const li = document.createElement("li"); li.dataset.frame = b.frame;
-    li.innerHTML = `<span class="mono muted">${fmtTime(b.frame / fps())}</span><span class="verdict ${v}">${label(v)}</span><span class="muted">${describe(b)}</span><span class="mono spd">${b.speed ? b.speed.kmh + " km/h" : ""}</span>`;
+    li.innerHTML = `<span class="mono muted">${fmtTime(b.frame / fps())}</span><span class="verdict ${v}">${label(v)}</span><span class="muted">${describe(b)}</span><span class="mono spd">${b.speed ? b.speed.kmh + " km/h" : ""}</span>` +
+      (b.court ? `<button class="rp-btn" title="${t("tReplay")}"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5" class="fill"/></svg></button>` : "<span></span>");
     li.onclick = () => jumpToBounce(b);
+    const rb = li.querySelector(".rp-btn");
+    if (rb) rb.onclick = (ev) => { ev.stopPropagation(); openReplay(b); };
     list.appendChild(li);
   }
   $("stIn").textContent = c.in; $("stOut").textContent = c.out; $("stClose").textContent = c.close;
@@ -423,6 +462,8 @@ function refreshVerdicts() {
   $("stServe").innerHTML = kmh(serves.length ? Math.max(...serves) : null);
   buildTimeline(); updateMinimap(true);
 }
+// une ancienne copie de la page (cache du navigateur) peut contenir un calque qui n'existe plus : on le retire
+document.querySelectorAll("[data-layer]").forEach((cb) => { if (!(cb.dataset.layer in S.layers)) cb.closest("label").remove(); });
 document.querySelectorAll("[data-layer]").forEach((cb) => (cb.onchange = () => (S.layers[cb.dataset.layer] = cb.checked)));
 document.querySelectorAll("#modeSeg button").forEach((b) => (b.onclick = () => setMode(b.dataset.mode === "double")));
 function setMode(doubles) {
@@ -447,7 +488,8 @@ function renderLibrary() {
     li.className = "video-item" + (S.current && S.current.name === v.name ? " active" : "");
     const dur = fmtTime(v.frames / v.fps).replace(/\.\d+$/, "");
     const badge = job ? `<span class="badge run">${job.status === "queued" ? t("queued") : Math.round(100 * job.progress) + " %"}</span>`
-      : v.analyzed ? `<span class="badge ok">${t("analyzed")}</span>` : `<span class="badge todo">${t("toAnalyze")}</span>`;
+      : v.analyzed ? (v.outdated ? `<span class="badge old" title="${t("tOutdated")}">${t("outdated")}</span>` : `<span class="badge ok">${t("analyzed")}</span>`)
+      : `<span class="badge todo">${t("toAnalyze")}</span>`;
     li.innerHTML = `<div class="name" title="${v.name}">${v.stem}</div>
       ${v.analyzed && !job ? `<button class="redo" title="${t("tRerun")}">${REDO_ICON}</button>` : "<span></span>"}
       <div class="meta">${badge}<span>${dur}</span><span>${v.width}×${v.height}</span></div>
@@ -597,16 +639,32 @@ document.addEventListener("keydown", (e) => {
   else if (k === "arrowright") { e.preventDefault(); stepFrame(1); }
   else if (k === "b") neighbourBounce(e.shiftKey ? -1 : 1);
   else if (k === "m") $("muteBtn").click();
+  else if (k === "r") replayNearest();
+  else if (k === "escape") closeReplay();
   else if (k === "s") setMode(!S.doubles);
-  else if ("12345".includes(k) && k.length === 1) {
-    const cb = document.querySelector(`[data-layer="${["court", "ball", "trail", "bounces", "speed"][+k - 1]}"]`);
+  else if ("123456".includes(k) && k.length === 1) {
+    const cb = document.querySelector(`[data-layer="${["court", "ball", "trail", "bounces", "speed", "players"][+k - 1]}"]`);
     cb.checked = !cb.checked; cb.onchange();
   }
 });
 
+// ---------- relecture, carte de chaleur, rapport ----------
+$("replayBtn").onclick = replayNearest;
+$("replay").addEventListener("click", (e) => e.stopPropagation());   // ne pas lancer la video dessous
+$("replayAgain").onclick = () => RP.b && openReplay(RP.b);
+$("replayClose").onclick = closeReplay;
+$("reportBtn").onclick = openReport;
+$("csvBtn").onclick = downloadCSV;
+function setMmMode(mode) {
+  S.mmMode = mode;
+  document.querySelectorAll("#mmMode button").forEach((x) => x.classList.toggle("active", x.dataset.mode === mode));
+  updateMinimap(true);
+}
+document.querySelectorAll("#mmMode button").forEach((b) => (b.onclick = () => setMmMode(b.dataset.mode)));
+
 // ---------- demarrage ----------
 (async function init() {
-  applyLang(); setMode(false); setMuteIcon(); setPlayIcon();
+  applyLang(); setMode(false); setMuteIcon(); setPlayIcon(); setMmMode("points");
   await pollJobs();
   await loadVideos();
   const first = S.videos.find((v) => v.analyzed) || S.videos[0];

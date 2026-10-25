@@ -70,6 +70,10 @@ def draw_court(img, Hm, kps=None, ok=None):
     return img
 
 
+MIN_MEDIAN_CONF = 0.85   # confiance mediane des 14 points en dessous de laquelle la detection est refusee
+MIN_SURE_POINTS = 10     # nombre minimal de points surs (un joueur peut en cacher quelques-uns)
+
+
 def detect(model, img, a):
     res = model.predict(img, imgsz=a.imgsz, conf=a.conf, device=a.device, verbose=False)[0]
     if res.keypoints is None or len(res.boxes) == 0:
@@ -77,6 +81,10 @@ def detect(model, img, a):
     i = int(res.boxes.conf.argmax())
     data = res.keypoints.data[i].cpu().numpy()  # (14, 3) : x, y, confiance
     h, w = img.shape[:2]
+    # Vraisemblance : sur un gros plan (jambes, raquette, public), le modele peut "inventer" un court ;
+    # il est alors nettement moins sur de ses points. Sur un vrai court, la confiance mediane est ~1.
+    if np.median(data[:, 2]) < MIN_MEDIAN_CONF or (data[:, 2] >= a.kp_conf).sum() < MIN_SURE_POINTS:
+        return None, data[:, :2], data[:, 2] >= a.kp_conf
     Hm, ok = fit_homography(data[:, :2], data[:, 2], a.kp_conf, w, h)
     return Hm, data[:, :2], ok
 

@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=12">
 </head>
 <body>
   <header class="topbar">
@@ -60,6 +60,10 @@
         <h2 data-i18n="export"></h2>
         <p class="muted small" data-i18n="exportHint"></p>
         <button id="exportBtn" class="btn wide" data-i18n="exportBtn"></button>
+        <div class="btn-row">
+          <button id="reportBtn" class="btn small" data-i18n="reportBtn"></button>
+          <button id="csvBtn" class="btn small" data-i18n="csvBtn"></button>
+        </div>
         <div id="exportProg" class="progress hidden"><div class="bar"></div></div>
         <div id="exportLinks" class="export-links"></div>
       </div>
@@ -71,6 +75,14 @@
         <video id="video" playsinline preload="auto"></video>
         <canvas id="overlay"></canvas>
         <div id="emptyState" class="state-card"><p data-i18n="pickVideo"></p></div>
+        <div id="replay" class="replay hidden">
+          <canvas id="replayCanvas"></canvas>
+          <div class="rp-top"><span id="replayVerdict" class="rp-verdict"></span><span id="replayInfo" class="rp-info"></span></div>
+          <div class="rp-actions">
+            <button id="replayAgain" class="btn small"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg><span data-i18n="replayAgain"></span></button>
+            <button id="replayClose" class="icon-btn" data-i18n-title="tClose"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          </div>
+        </div>
         <div id="analyzeCard" class="state-card hidden">
           <h3 id="analyzeTitle"></h3>
           <p id="analyzeText" class="muted"></p>
@@ -91,6 +103,7 @@
           <span class="sep"></span>
           <button id="prevBounce" class="icon-btn" data-i18n-title="tPrevBounce"><svg viewBox="0 0 24 24"><path d="M18 6l-6 6 6 6M11 6l-6 6 6 6"/></svg></button>
           <button id="nextBounce" class="icon-btn" data-i18n-title="tNextBounce"><svg viewBox="0 0 24 24"><path d="M6 6l6 6-6 6M13 6l6 6-6 6"/></svg></button>
+          <button id="replayBtn" class="icon-btn" data-i18n-title="tReplay"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5" class="fill"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3"/></svg></button>
           <span class="sep"></span>
           <button id="muteBtn" class="icon-btn" data-i18n-title="tMute"><svg id="muteIcon" viewBox="0 0 24 24"></svg></button>
           <input id="volume" class="volume" type="range" min="0" max="1" step="0.05" value="0.8">
@@ -128,6 +141,7 @@
           <label class="toggle"><input type="checkbox" data-layer="trail" checked><span class="sw"></span><span data-i18n="lyTrail"></span></label>
           <label class="toggle"><input type="checkbox" data-layer="bounces" checked><span class="sw"></span><span data-i18n="lyBounces"></span></label>
           <label class="toggle"><input type="checkbox" data-layer="speed" checked><span class="sw"></span><span data-i18n="lySpeed"></span></label>
+          <label class="toggle"><input type="checkbox" data-layer="players" checked><span class="sw"></span><span data-i18n="lyPlayers"></span></label>
         </div>
       </div>
 
@@ -148,7 +162,10 @@
       </div>
 
       <div class="card minimap-card">
-        <h2 data-i18n="minimap"></h2>
+        <div class="mm-head">
+          <h2 data-i18n="minimap"></h2>
+          <div class="mini-seg" id="mmMode"><button data-mode="points" data-i18n="mmPoints"></button><button data-mode="heat" data-i18n="mmHeat"></button></div>
+        </div>
         <div class="minimap-wrap">
           <svg id="minimap" viewBox="-3 -3 16.97 29.77" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
           <div id="minimapTip" class="tooltip hidden"></div>
@@ -159,6 +176,7 @@
 
   <div id="dropOverlay" class="drop-overlay hidden"><div data-i18n="dropHere"></div></div>
   <div id="toast" class="toast hidden"></div>
-  <script src="app.js?v=5"></script>
+  <script src="features.js?v=12"></script>
+  <script src="app.js?v=12"></script>
 </body>
 </html>

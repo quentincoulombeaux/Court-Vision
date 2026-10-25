@@ -42,7 +42,11 @@ on free Google Colab.
 | **Bounce detection** | Physics-based (no extra training): a bounce is a sudden *upward* kick in the ball's image velocity, framed by shots. Measured **F1 = 0.888** on 523 hand-labelled bounces. |
 | **Line calls** | Each bounce is converted to metres on the court. Singles (default) or doubles, with an adjustable orange "close call" zone (±5 cm by default). |
 | **Shot speed** | Estimated from the court's official dimensions, flight time and air drag. Serves are detected automatically. Typical results: rally shots 100–160 km/h, serves 180–200 km/h. |
-| **Bounce map** | Top-down court view; bounces appear as the video plays. |
+| **Bounce map** | Top-down court view; bounces appear as the video plays, with both players' live positions. **Heatmap mode** shows bounce density. |
+| **Line-call replay** | A 3D replay of any bounce: the ball's reconstructed flight in slow motion, then the camera drops above the mark and shows its distance to the line. |
+| **Players** | Both players are detected (YOLO11n "person"), placed on the court through their feet, and tracked; officials and ball kids are rejected. Used for the service-box rule and to measure the hit height. |
+| **Service-box rule** | The first bounce of a serve is judged against the diagonal service box. |
+| **Match report** | Printable report (save as PDF): summary, bounce map and heatmap, shot-speed chart, bounce table. CSV export of all bounces. |
 | **Web interface** | Video library, drag-and-drop import, background analysis with progress and ETA, live overlay layers, timeline of bounces and shots, statistics, English / French. |
 | **Export** | Annotated MP4 (court lines, ball trail, animated impact markers, speed labels) with the original audio. |
 
@@ -109,6 +113,19 @@ All pixel thresholds are expressed for 720p and scaled to the video's height.
    energy; a shot adds it.
 5. **Contact point.** Parabolas (gravity) are fitted on each side of the best descent/ascent
    split. The contact is where the two vertical trajectories meet, usually between two frames.
+6. **Player-aware rules.** A U-turn inside a player's racket zone that speeds the ball up is a
+   hit. A player cannot hit twice in a row without a bounce: only the last "shot" of a run counts.
+   A serve is recognised by the toss that precedes it.
+7. **Point consistency.** The videos contain a single point, so the rally must make sense:
+   - an "out" bounce followed by a good one was not a bounce (except a serve fault before a
+     second serve);
+   - two bounces in a row on the same side, when a bounce on the other side comes later, are
+     not both real (except around a volley); the suspect one is dropped and detection re-runs;
+   - if the chosen bounce is out but a clean bounce earlier in the same exchange is in, the out
+     one was the second bounce of a winner.
+8. **Hidden bounces.** When the ball crosses from one player to the other with no visible bounce
+   (ball hidden behind a player), its 3D flight is fitted to the visible positions and the ground
+   contact is computed. These bounces are marked *estimated* and get a wider uncertainty.
 
 ### 4. Line calls and speed
 
@@ -179,12 +196,14 @@ python app/server.py --host 0.0.0.0  # reachable from other devices on your netw
    progress and an ETA. Expect about 1 s per frame on a laptop CPU; ball detection is 85 % of the
    time. Only one job runs at a time, and you can keep watching other videos meanwhile.
 3. **Watch.**
-   - Toggle the **layers**: court, ball, trail, bounces, speed.
+   - Toggle the **layers**: court, ball, trail, bounces, speed, players.
+   - Click the target icon next to a bounce (or press `R`) for the **line-call replay**.
+   - Switch the map between **Points** and **Heatmap**.
    - Bounce markers on the timeline are coloured by verdict. Click one to jump just before it,
      in slow motion.
    - The bounce list and the map are clickable too.
 4. **Export.** **Export video** renders an MP4 with the current rules and language, with the
-   original sound. The download link appears in the Export panel.
+   original sound. **Match report** opens a printable report; **CSV** downloads every bounce.
 5. **Re-run.** The ↻ icon next to a video recomputes its whole analysis.
 
 **Keyboard shortcuts**
@@ -196,7 +215,8 @@ python app/server.py --host 0.0.0.0  # reachable from other devices on your netw
 | `B` / `Shift+B` | next / previous bounce |
 | `M` | sound on / off |
 | `S` | singles ↔ doubles |
-| `1`–`5` | toggle the court, ball, trail, bounces and speed layers |
+| `1`–`6` | toggle the court, ball, trail, bounces, speed and players layers |
+| `R` / `Esc` | line-call replay of the last bounce / close it |
 
 **Colours:** green = in, red = out, amber = close call, grey = not judgeable (court not visible).
 
@@ -378,8 +398,8 @@ the models, or are produced when you run the system.
 
 - **Ball tracking is the weakest link.** The ball can be lost exactly at a bounce (fast winners),
   or the tracker can briefly follow the racket head.
-- **Serves are not judged against the service box yet**: every bounce is judged against the full
-  court.
+- **Estimated bounces** (ball hidden behind a player) are less precise than observed ones
+  (±40–60 cm).
 - **Slow volleys** are not always marked as shots.
 - **Broadcast camera assumed**: an elevated view from behind the baseline. Unusual angles have not
   been tested.
@@ -388,8 +408,6 @@ the models, or are produced when you run the system.
 
 ## Roadmap
 
-- Service-box rule for serves.
-- Player detection to anchor shots (a shot always happens next to a player).
 - Kalman filtering / TrackNet fallback for difficult ball segments.
 - Speed calibration against official on-screen serve speeds.
 - Rally statistics per player (depth, direction, winners, errors).

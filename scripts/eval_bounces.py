@@ -19,7 +19,8 @@ from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from detect_bounces import find_bounces, make_parser, to_samples  # noqa: E402
+from detect_bounces import find_bounces, make_parser, serve_impacts, to_samples  # noqa: E402
+from predict_video_yolo import fill_gaps  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 LABELS = ROOT / "bounce_eval" / "tracknet_labels"
@@ -68,6 +69,9 @@ def main():
     ap.add_argument("--noise", action="store_true", help="bruit 1.5 px + 8 %% de detections manquees")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--show-misses", action="store_true")
+    ap.add_argument("--serve-rule", type=int, default=1, help="1 = impact du service retire des rebonds")
+    ap.add_argument("--fill", type=int, default=1, help="1 = comble les trous du suivi avant la detection")
+    ap.add_argument("--drop-runs", action="store_true", help="bruit : trous de 2 a 6 frames (balle perdue) au lieu de frames isolees")
     a = ap.parse_args()
     rnd = random.Random(a.seed)
 
@@ -78,16 +82,28 @@ def main():
     misses = []
     for path in sorted(LABELS.glob("*.csv")):
         gt = load_clip(path)
-        track = {}
+        track, skip = {}, 0
         for i, v, x, y, _ in gt:
             if v in (1, 2):  # 3 = balle cachee : un detecteur ne la voit pas
                 if a.noise:
-                    if rnd.random() < 0.08:
+                    if a.drop_runs:
+                        if skip == 0 and rnd.random() < 0.03:
+                            skip = rnd.randint(2, 6)  # balle perdue plusieurs images d'affilee
+                        if skip:
+                            skip -= 1
+                            continue
+                    elif rnd.random() < 0.08:
                         continue
                     x, y = x + rnd.gauss(0, 1.5), y + rnd.gauss(0, 1.5)
                 track[i] = (x, y)
+        if a.fill:
+            rows = [dict(Frame=i, X=track[i][0] if i in track else 0, Y=track[i][1] if i in track else 0,
+                         Visibility=1 if i in track else 0, Confidence=0) for i in range(len(gt))]
+            track = {r["Frame"]: (r["X"], r["Y"]) for r in fill_gaps(rows, None, FRAME_H) if r["Visibility"]}
         samples = to_samples(track, a.dedup, a.outlier)
         bounces, shots = find_bounces(samples, a, FRAME_H)
+        if a.serve_rule:
+            bounces, shots = serve_impacts(bounces, shots, track, 1280, FRAME_H)
 
         truth = [i for i, *_, st in gt if st == 2]
         pairs = match([b["frame"] for b in bounces], truth, a.tol)
